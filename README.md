@@ -7,8 +7,6 @@ This sketch is for debugging and testing on arduino. Uses normal IRremote.h libr
 
 
 ## standby-psu-master
-Coming soon.
-
 This sketch is for use with ATTiny.
 Uses tiny_IRremote.h and SendOnlySoftwareSerial.h libraries.
 
@@ -19,6 +17,7 @@ I/O:
 - ir
 - serial out
 
+PCB and components coming soon
 
 ## standby-psu-slave
 Comming soon.
@@ -32,3 +31,5 @@ I/O:
 - relay
 - mute relay
 - serial in
+
+Same PCB as master. 
