@@ -2,8 +2,15 @@
 Small sandby PSU for low power applications.
 
 
+## standby-psu-test
+This sketch is for debugging and testing on arduino. Uses normal IRremote.h library.
+
+
 ## standby-psu-master
-This sketch is for use with ATTiny. Uses tiny_IRremote.h library.
+Coming soon.
+
+This sketch is for use with ATTiny.
+Uses tiny_IRremote.h and SendOnlySoftwareSerial.h libraries.
 
 I/O:
 - button
@@ -12,13 +19,12 @@ I/O:
 - ir
 - serial out
 
-This sketch is not ported from test as of right now.
-
-## standby-psu-test
-This sketch is for debugging and testing on arduino. Uses normal IRremote.h library.
 
 ## standby-psu-slave
-Comming soon. Will use ReceiveOnlySoftwareSerial and no IR.
+Comming soon.
+
+This sketch is for use with ATTiny.
+Uses ReceiveOnlySoftwareSerial.h library.
 
 I/O:
 - button
