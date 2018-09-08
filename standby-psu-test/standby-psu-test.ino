@@ -13,7 +13,6 @@
 bool ledState = HIGH;       // state of standby led. turned HIGH when system is off
 bool powerState = LOW;      // power state, LOW when system is off
 bool enablePower = HIGH;    // enable power state change
-bool enableShort = HIGH;    // ebable short button press
 
 int debounceDelay = 50;                        // debounce time
 unsigned long powerStateTimer = 0;              // time snapshot when power state changed
@@ -39,8 +38,6 @@ void setup() {
     pinMode(irPin, INPUT);
     pinMode(relayPin, OUTPUT);
     pinMode(serialOutPin, OUTPUT);
-//    attachInterrupt(digitalPinToInterrupt(buttonPin), btnDown, CHANGE);
-//    attachInterrupt(digitalPinToInterrupt(buttonPin), btnUp, RISING);
 
     // defaults
     digitalWrite(ledPin, ledState);
@@ -51,24 +48,10 @@ void setup() {
 }
 
 void loop() {
-    // startup delay and powerdown blinking led delay
-    // while (millis() - powerStateTimer < powerStateDelay) {
-    //     digitalWrite(ledPin, HIGH);
-    //     delay(debounceDelay);
-    //     digitalWrite(ledPin, LOW);
-    //     delay(debounceDelay * 19);
-    // }
-    // // reset led to correct state
-    // digitalWrite(ledPin, ledState);
-
+    // startup and shutdown blinking led
     if (millis() - powerStateTimer < powerStateDelay) {
+        // disable power button
         enablePower = LOW;
-        if (powerState == LOW) {
-            enableShort = LOW;
-        }
-        else {
-            enableShort = HIGH;
-        }
 
         // blink led every second
         if(millis() - blinkTimer > 1000) {
@@ -79,10 +62,39 @@ void loop() {
         }
     }
     else {
+        // enable power button
         enablePower = HIGH;
-        enableShort = HIGH;
+
+        // reset led state
         digitalWrite(ledPin, ledState);
     }
+
+    // microsoft xbox one media remote - NEC standard
+    // 18556633 - logo
+    // 18577033 - window
+    // 18609673 - lines
+    // 18577543 - up
+    // 18610183 - down
+    // 18547963 - left
+    // 18580603 - right
+    // 18564283 - center
+    // 18596923 - back
+    // 18572443 - line dot
+    // 18589783 - rewind
+    // 18550513 - play
+    // 18557143 - forward
+    // 18602023 - previous
+    // 18585703 - stop
+    // 18569383 - next
+
+    // repeating codes
+    // 18548983 - volume up
+    // 18581623 - volume down
+    // 18575503 - mute
+    // 18565303 - channel up
+    // 18597943 - channel down
+
+    // 4294967295 - resend data
 
     // read ir
     // if (irrecv.decode(&results)) {
@@ -139,6 +151,7 @@ void loop() {
         else if (powerState == LOW) {
             // turning on
             delay(debounceDelay);
+
             ledState = powerState;
             powerState = !powerState;
             powerStateTimer = millis();
@@ -148,35 +161,13 @@ void loop() {
             digitalWrite(relayPin, powerState);
         }
     }
-    else if (buttonPress > 1 && buttonPress < 20 && enableShort == HIGH) {
+    else if (buttonPress > 1 && buttonPress < 20 && powerState == HIGH) {
         // send short press signal over serial
         serialBlink();
     }
-    // Serial.print ("Power state: ");
-    // Serial.print (powerState);
-    // Serial.print ("    Led state: ");
-    // Serial.print (ledState);
-    // Serial.print ("    Power state timer: ");
-    // Serial.print (powerStateTimer);
-    // Serial.print ("    Button state: ");
-    // Serial.println (digitalRead(buttonPin));
-    
-
 }
 
-// void btnDown() {
-//     Serial.println ("button down sub");
-//     digitalWrite(serialOutPin, LOW);
-//     delay(debounceDelay);
-// }
-
-// void btnUp() {
-//     Serial.println ("button up sub");
-//     digitalWrite(serialOutPin, HIGH);
-//     delay(debounceDelay);
-// }
-
-void serialBlink () {
+void serialBlink() {
     digitalWrite(serialOutPin, HIGH);
     delay(debounceDelay * 2);
     digitalWrite(serialOutPin, LOW);
