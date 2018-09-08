@@ -1,7 +1,6 @@
 // load libraries
-//#include "IRremote.h"
+#include "IRremote.h"
 //#include "SendOnlySoftwareSerial.h"
-//#include "avr/interrupt.h"
 
 // pinout
 #define relayPin 5
@@ -13,15 +12,21 @@
 bool ledState = HIGH;       // state of standby led. turned HIGH when system is off
 bool powerState = LOW;      // power state, LOW when system is off
 bool enablePower = HIGH;    // enable power state change
+bool powerSent = LOW;
 
-int debounceDelay = 50;                        // debounce time
+int debounceDelay = 50;                         // debounce time
 unsigned long powerStateTimer = 0;              // time snapshot when power state changed
 unsigned long blinkTimer = 0;                   // blink timer
-long powerStateDelay = 15000;                   // power state delay time
+int powerStateDelay = 15000;                    // power state delay time
+bool pauseLoop = LOW;                         // pause main loop
 
 // IR setup
-//IRrecv irrecv(irPin);
-//decode_results results;
+IRrecv irrecv(irPin);
+decode_results results;
+
+unsigned long muteTimer = 0;                    // millis snapshot when we press mute button on ir (repeating signal)
+bool irMute = LOW;                              // check if we can change mute state again with ir
+bool irPower = LOW;                             // signal to change power state from ir
 
 // Software serial
 //SendOnlySoftwareSerial mySerial (serialOutPin);       // Tx pin
@@ -30,7 +35,6 @@ void setup() {
     // serial setup
 //    mySerial.begin (9600);
     Serial.begin (115200);
-//    digitalWrite(serialOutPin, HIGH);   //test
 
     // pinout setup
     pinMode(buttonPin, INPUT_PULLUP);
@@ -44,7 +48,7 @@ void setup() {
     digitalWrite(relayPin, powerState);
 
     // ir setup
-//    irrecv.enableIRIn();
+    irrecv.enableIRIn();
 }
 
 void loop() {
@@ -52,6 +56,7 @@ void loop() {
     if (millis() - powerStateTimer < powerStateDelay) {
         // disable power button
         enablePower = LOW;
+//        Serial.println ("power disabled");
 
         // blink led every second
         if(millis() - blinkTimer > 1000) {
@@ -59,11 +64,13 @@ void loop() {
             delay(debounceDelay);
             digitalWrite(ledPin, LOW);
             blinkTimer = millis();
+            Serial.println ("power disable blink");
         }
     }
     else {
         // enable power button
         enablePower = HIGH;
+//        Serial.println ("power enabled");
 
         // reset led state
         digitalWrite(ledPin, ledState);
@@ -97,16 +104,42 @@ void loop() {
     // 4294967295 - resend data
 
     // read ir
-    // if (irrecv.decode(&results)) {
-    //     if (results.value != 4294967295) {
-    //         Serial.print ("Read code: ");
-    //         Serial.println (results.value);
-    //     }
-    //     if (results.value == 18556633) {
-    //         digitalWrite(serialOutPin, HIGH);    //test
-    //     }
-    //     irrecv.resume(); // Receive the next value
-    // }
+    if (irrecv.decode(&results)) {
+        if (results.value == 18556633) { // logo button as power on or off
+//            mySerial.println("     ");
+            irPower = HIGH;
+            serialBlink();
+//            Serial.println ("logo button");
+        }
+        if (results.value == 18575503 && irMute == LOW) { // mute button
+//            mySerial.println("     ");
+            irMute = HIGH;
+            muteTimer = millis();
+            serialBlink();
+            Serial.println ("mute button");
+        }
+        if (results.value == 18548983) { // volume up
+//            mySerial.println("     ");
+            serialBlink();
+            Serial.println ("volume up button");
+        }
+        if (results.value == 18581623) { // volume down
+//            mySerial.println("     ");
+            serialBlink();
+            Serial.println ("volume down button");
+        }
+        if (results.value == 18609673) { // lines button as change output
+//            mySerial.println("     ");
+            serialBlink();
+            Serial.println ("lines button");
+        }
+        if (results.value == 18577033) { // squares button as change input
+//            mySerial.println("     ");
+            serialBlink();
+            Serial.println ("squares button");
+        }
+        irrecv.resume(); // Receive the next value
+    }
 
     // read button
     int buttonPress = 0;
@@ -121,22 +154,34 @@ void loop() {
         Serial.println ("--");
     }
 
-    if (buttonPress > 29 && enablePower == HIGH) {
+    if ( (buttonPress > 29 || irPower == HIGH) && enablePower == HIGH) {
         // power on or off
         if (powerState == HIGH) {
+            Serial.println ("power off");
             // turning off
 
             // send mute over serial
-//            mySerial.println("0001");
+//            mySerial.println("Mute");
             serialBlink();
+            Serial.println ("send mute");
 
             // wait 3seconds after mute signal before system turns off
+            powerSent = LOW;
             int turnOff = 0;
             do {
                 digitalWrite(ledPin, !ledState);
                 delay(debounceDelay);
                 digitalWrite(ledPin, ledState);
                 delay(debounceDelay);
+
+                // send power off over serial
+                if (turnOff > 10 && powerSent == LOW) {
+                    powerSent = HIGH;
+//                    mySerial.println("powerOff");
+                    serialBlink();
+                    Serial.println ("send poweroff");
+                }
+
                 turnOff++;
             } while (turnOff < 30);
 
@@ -149,6 +194,7 @@ void loop() {
             digitalWrite(relayPin, powerState);
         }
         else if (powerState == LOW) {
+            Serial.println ("power on");
             // turning on
             delay(debounceDelay);
 
@@ -164,7 +210,36 @@ void loop() {
     else if (buttonPress > 1 && buttonPress < 20 && powerState == HIGH) {
         // send short press signal over serial
         serialBlink();
+        Serial.println ("short press sent");
     }
+
+    // reset mute operation after 15s
+    if (millis() - muteTimer > powerStateDelay && irMute == HIGH) {
+        irMute = LOW;
+        Serial.println ("ir mute reset to false");
+    }
+
+    // pause main loop
+    do {
+        pauseLoop = LOW;
+        if (irrecv.decode(&results)) {
+            if (results.value == 4294967295) {   // ir resend data value
+                if (irPower == HIGH) {
+                    pauseLoop = HIGH;
+                    Serial.println ("pause loop ir");
+                }
+            }
+            irrecv.resume(); // Receive the next value
+        }
+        if (digitalRead(buttonPin) == LOW ) {
+            pauseLoop = HIGH;
+            Serial.println ("pause loop button");
+        }
+        delay(debounceDelay);
+    } while (pauseLoop);     // wait for button release
+
+    // reset irPower flag
+    irPower = LOW;
 }
 
 void serialBlink() {
