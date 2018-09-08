@@ -3,11 +3,11 @@
 #include "SendOnlySoftwareSerial.h"
 
 // pinout
-#define relayPin PB2
-#define ledPin PB1
-#define buttonPin PB0
-#define serialOutPin PB4
-#define irPin PB3
+#define relayPin PB2                            // ATtiny pin 7
+#define ledPin PB1                              // ATtiny pin 6
+#define buttonPin PB0                           // ATtiny pin 5
+#define serialOutPin PB4                        // ATtiny pin 3
+#define irPin PB3                               // ATtiny pin 2
 
 bool ledState = HIGH;                           // state of standby led. turned HIGH when system is off
 bool powerState = LOW;                          // power state, LOW when system is off
