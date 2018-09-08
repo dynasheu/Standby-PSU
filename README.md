@@ -15,7 +15,7 @@ I/O:
 This sketch is not ported from test as of right now.
 
 ## standby-psu-test
-This sketch is for debugging and testing on arduino. Uses normal IRreduce.h library.
+This sketch is for debugging and testing on arduino. Uses normal IRremote.h library.
 
 ## standby-psu-slave
 Comming soon. Will use ReceiveOnlySoftwareSerial and no IR.
