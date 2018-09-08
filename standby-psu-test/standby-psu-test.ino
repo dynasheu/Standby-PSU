@@ -9,16 +9,16 @@
 #define serialOutPin 6
 #define irPin 7
 
-bool ledState = HIGH;       // state of standby led. turned HIGH when system is off
-bool powerState = LOW;      // power state, LOW when system is off
-bool enablePower = HIGH;    // enable power state change
+bool ledState = HIGH;                           // state of standby led. turned HIGH when system is off
+bool powerState = LOW;                          // power state, LOW when system is off
+bool enablePower = HIGH;                        // enable power state change
 bool powerSent = LOW;
 
 int debounceDelay = 50;                         // debounce time
 unsigned long powerStateTimer = 0;              // time snapshot when power state changed
 unsigned long blinkTimer = 0;                   // blink timer
 int powerStateDelay = 15000;                    // power state delay time
-bool pauseLoop = LOW;                         // pause main loop
+bool pauseLoop = LOW;                           // pause main loop
 
 // IR setup
 IRrecv irrecv(irPin);
@@ -112,29 +112,29 @@ void loop() {
 //            Serial.println ("logo button");
         }
         if (results.value == 18575503 && irMute == LOW) { // mute button
-//            mySerial.println("     ");
+//            mySerial.println("0202");
             irMute = HIGH;
             muteTimer = millis();
             serialBlink();
             Serial.println ("mute button");
         }
         if (results.value == 18548983) { // volume up
-//            mySerial.println("     ");
+//            mySerial.println("0301");
             serialBlink();
             Serial.println ("volume up button");
         }
         if (results.value == 18581623) { // volume down
-//            mySerial.println("     ");
+//            mySerial.println("0302");
             serialBlink();
             Serial.println ("volume down button");
         }
         if (results.value == 18609673) { // lines button as change output
-//            mySerial.println("     ");
+//            mySerial.println("0401");
             serialBlink();
             Serial.println ("lines button");
         }
         if (results.value == 18577033) { // squares button as change input
-//            mySerial.println("     ");
+//            mySerial.println("0501");
             serialBlink();
             Serial.println ("squares button");
         }
@@ -161,7 +161,7 @@ void loop() {
             // turning off
 
             // send mute over serial
-//            mySerial.println("Mute");
+//            mySerial.println("0201");
             serialBlink();
             Serial.println ("send mute");
 
@@ -177,7 +177,7 @@ void loop() {
                 // send power off over serial
                 if (turnOff > 10 && powerSent == LOW) {
                     powerSent = HIGH;
-//                    mySerial.println("powerOff");
+//                    mySerial.println("0103");
                     serialBlink();
                     Serial.println ("send poweroff");
                 }
@@ -209,6 +209,7 @@ void loop() {
     }
     else if (buttonPress > 1 && buttonPress < 20 && powerState == HIGH) {
         // send short press signal over serial
+//        mySerial.println("0900");
         serialBlink();
         Serial.println ("short press sent");
     }
