@@ -12,7 +12,7 @@
 bool ledState = HIGH;                           // state of standby led. turned HIGH when system is off
 bool powerState = LOW;                          // power state, LOW when system is off
 bool enablePower = HIGH;                        // enable power state change
-bool powerSent = LOW;
+bool powerSent = LOW;                           // flag to send power down serial out
 
 int debounceDelay = 50;                         // debounce time
 unsigned long powerStateTimer = 0;              // time snapshot when power state changed
