@@ -10,11 +10,14 @@
 #define serialOutPin 6
 #define irPin 7
 
-int ledState = HIGH;        // state of standby led. turned HIGH when system is off
-int powerState = LOW;       // power state, LOW when system is off
+bool ledState = HIGH;       // state of standby led. turned HIGH when system is off
+bool powerState = LOW;      // power state, LOW when system is off
+bool enablePower = HIGH;    // enable power state change
+bool enableShort = HIGH;    // ebable short button press
 
 int debounceDelay = 50;                        // debounce time
 unsigned long powerStateTimer = 0;              // time snapshot when power state changed
+unsigned long blinkTimer = 0;                   // blink timer
 long powerStateDelay = 15000;                   // power state delay time
 
 // IR setup
@@ -26,7 +29,7 @@ long powerStateDelay = 15000;                   // power state delay time
 
 void setup() {
     // serial setup
-    //mySerial.begin (9600);
+//    mySerial.begin (9600);
     Serial.begin (115200);
 //    digitalWrite(serialOutPin, HIGH);   //test
 
@@ -36,27 +39,50 @@ void setup() {
     pinMode(irPin, INPUT);
     pinMode(relayPin, OUTPUT);
     pinMode(serialOutPin, OUTPUT);
-    //attachInterrupt(digitalPinToInterrupt(buttonPin), btnDown, CHANGE);
-    //attachInterrupt(digitalPinToInterrupt(buttonPin), btnUp, RISING);
+//    attachInterrupt(digitalPinToInterrupt(buttonPin), btnDown, CHANGE);
+//    attachInterrupt(digitalPinToInterrupt(buttonPin), btnUp, RISING);
 
     // defaults
     digitalWrite(ledPin, ledState);
     digitalWrite(relayPin, powerState);
 
     // ir setup
-    //irrecv.enableIRIn();
+//    irrecv.enableIRIn();
 }
 
 void loop() {
     // startup delay and powerdown blinking led delay
-    while (millis() - powerStateTimer < powerStateDelay) {
-        digitalWrite(ledPin, HIGH);
-        delay(debounceDelay);
-        digitalWrite(ledPin, LOW);
-        delay(debounceDelay * 19);
+    // while (millis() - powerStateTimer < powerStateDelay) {
+    //     digitalWrite(ledPin, HIGH);
+    //     delay(debounceDelay);
+    //     digitalWrite(ledPin, LOW);
+    //     delay(debounceDelay * 19);
+    // }
+    // // reset led to correct state
+    // digitalWrite(ledPin, ledState);
+
+    if (millis() - powerStateTimer < powerStateDelay) {
+        enablePower = LOW;
+        if (powerState == LOW) {
+            enableShort = LOW;
+        }
+        else {
+            enableShort = HIGH;
+        }
+
+        // blink led every second
+        if(millis() - blinkTimer > 1000) {
+            digitalWrite(ledPin, HIGH);
+            delay(debounceDelay);
+            digitalWrite(ledPin, LOW);
+            blinkTimer = millis();
+        }
     }
-    // reset led to correct state
-    digitalWrite(ledPin, ledState);
+    else {
+        enablePower = HIGH;
+        enableShort = HIGH;
+        digitalWrite(ledPin, ledState);
+    }
 
     // read ir
     // if (irrecv.decode(&results)) {
@@ -83,11 +109,25 @@ void loop() {
         Serial.println ("--");
     }
 
-    if (buttonPress > 29) {
+    if (buttonPress > 29 && enablePower == HIGH) {
         // power on or off
         if (powerState == HIGH) {
             // turning off
-            delay(debounceDelay);
+
+            // send mute over serial
+//            mySerial.println("0001");
+            serialBlink();
+
+            // wait 3seconds after mute signal before system turns off
+            int turnOff = 0;
+            do {
+                digitalWrite(ledPin, !ledState);
+                delay(debounceDelay);
+                digitalWrite(ledPin, ledState);
+                delay(debounceDelay);
+                turnOff++;
+            } while (turnOff < 30);
+
             ledState = powerState;
             powerState = !powerState;
             powerStateTimer = millis();
@@ -108,11 +148,9 @@ void loop() {
             digitalWrite(relayPin, powerState);
         }
     }
-    else if (buttonPress > 1 && buttonPress < 20 && powerState == HIGH) {
+    else if (buttonPress > 1 && buttonPress < 20 && enableShort == HIGH) {
         // send short press signal over serial
-        digitalWrite(serialOutPin, HIGH);
-        delay(debounceDelay * 2);
-        digitalWrite(serialOutPin, LOW);
+        serialBlink();
     }
     // Serial.print ("Power state: ");
     // Serial.print (powerState);
@@ -137,3 +175,9 @@ void loop() {
 //     digitalWrite(serialOutPin, HIGH);
 //     delay(debounceDelay);
 // }
+
+void serialBlink () {
+    digitalWrite(serialOutPin, HIGH);
+    delay(debounceDelay * 2);
+    digitalWrite(serialOutPin, LOW);
+}
